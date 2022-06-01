@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+
+    <style>
+        html {
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        body {
+            height: 100vh;
+            width: 100vw;
+            background-color: ivory;
+        }
+
+        canvas {
+            border: 1px solid red;
+            position: absolute;
+        }
+
+        #canvasWrapper {
+            position: relative;
+        }
+
+        .btnClass {
+            position: absolute;
+            top: 400px;
+            left: 30px;
+        }
+        #last{
+            position: absolute;
+            top: 420px;
+            left: 30px;
+            width: 400px;
+            height: auto;
+        }
+        li{
+            font-size:15px;
+        }
+    </style>
+</head>
+
+<body>
+    <h4>Drag the mouse to create a rectangle</h4>
+    <div id="canvasWrapper">
+        <canvas id="overlay" width=300 height=300></canvas>
+        <canvas id="canvas" width=300 height=300></canvas>
+    </div>
+    <div class="btnClass">
+        <button onClick="shape='rect'">rectangle</button>
+        <button onClick="shape='circle'">circle</button>
+        <button onClick="shape='line'">line</button>
+        <button onClick="shape='ellipse'">ellipse</button>
+    </div>
+    <div id="last">
+        <ul id="lastUl">
+
+        </ul>
+    </div>
+</body>
+<script>
+    // get references to the canvas and context
+    var canvas = document.getElementById("canvas");
+    var overlay = document.getElementById("overlay");
+    var ctx = canvas.getContext("2d");
+    var ctxo = overlay.getContext("2d");
+
+    // style the context
+    ctx.strokeStyle = "blue";
+    ctx.lineWidth = 3;
+    ctxo.strokeStyle = "blue";
+    ctxo.lineWidth = 3;
+
+    // calculate where the canvas is on the window
+    // (used to help calculate mouseX/mouseY)
+    // var $canvas = $("#canvas");
+    var $canvas = $("#canvas");
+    var canvasOffset = $canvas.offset();
+    var offsetX = canvasOffset.left;
+    var offsetY = canvasOffset.top;
+    var scrollX = $canvas.scrollLeft();
+    var scrollY = $canvas.scrollTop();
+
+    // this flage is true when the user is dragging the mouse
+    var isDown = false;
+
+    // these vars will hold the starting mouse position
+    var startX;
+    var startY;
+
+    var prevStartX = 0;
+    var prevStartY = 0;
+
+    var prevWidth = 0;
+    var prevHeight = 0;
+
+    var shape = "rect"
+    var last = []
+
+
+    function handleMouseDown(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // save the starting x/y of the rectangle
+        startX = parseInt(e.clientX - offsetX);
+        startY = parseInt(e.clientY - offsetY);
+
+        // set a flag indicating the drag has begun
+        isDown = true;
+    }
+
+    function handleMouseUp(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // the drag is over, clear the dragging flag
+        isDown = false;
+        if (shape === "rect") {
+            ctxo.strokeRect(prevStartX, prevStartY, prevWidth, prevHeight);
+        }
+        if (shape === "ellipse") {
+            ctxo.strokeStyle = "red";
+            ctxo.strokeRect(prevStartX, prevStartY, prevWidth, prevHeight);
+            ctxo.strokeStyle = "blue";
+
+        }
+
+
+        if (shape === "circle") {
+            ctxo.beginPath();
+            if (prevWidth > prevHeight) {
+                b = prevWidth
+            } else { b = prevHeight }
+            var a = b / 2
+            if (a > 0 && b > 0) {
+                ctxo.arc(startX + a, startY + a, b / 2, 0, 2 * Math.PI);
+            }
+            ctxo.stroke();
+        }
+        if (shape === "line") {
+            ctxo.beginPath();
+            ctxo.moveTo(prevStartX, prevStartY);
+            ctxo.lineTo(prevStartX + prevWidth, prevStartY + prevHeight);
+            ctxo.stroke();
+        }
+        var text
+        if(shape === "rect"){text = "Canvas.rectangle"}
+        if(shape === "ellipse"){text = "Canvas.ellipse"}
+        if(shape === "circle"){text = "Canvas.circle"}
+        if(shape === "line"){text = "Canvas.line"}
+
+        last.push({"shape":shape,"text":text,"x":prevStartX,"y":prevStartY,"width":prevWidth,"height":prevHeight})
+        
+        console.log("------")
+        console.log(last)
+        formatLast(last)
+    }
+
+    function handleMouseOut(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // the drag is over, clear the dragging flag
+        isDown = false;
+    }
+
+    function handleMouseMove(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // if we're not dragging, just return
+        if (!isDown) {
+            return;
+        }
+
+        // get the current mouse position
+        mouseX = parseInt(e.clientX - offsetX);
+        mouseY = parseInt(e.clientY - offsetY);
+
+        var width = mouseX - startX;
+        var height = mouseY - startY;
+
+        prevStartX = startX;
+        prevStartY = startY;
+
+        prevWidth = width;
+        prevHeight = height;
+
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (shape === "rect") {
+            ctx.strokeRect(startX, startY, width, height);
+        }
+        if(shape === 'ellipse'){
+            ctx.strokeStyle = "red";
+            ctx.strokeRect(startX, startY, width, height);
+
+            ctx.strokeStyle = "blue";
+
+        }
+        if (shape === "circle") {
+            ctx.beginPath();
+            if (width > height) {
+                b = width
+            } else { b = height }
+            var a = b / 2
+            if (a > 0 && b > 0) {
+                ctx.arc(startX + a, startY + a, b / 2, 0, 2 * Math.PI);
+                prevStartX = startX;
+                prevStartY = startY;
+                prevWidth = b;
+                prevHeight = b;
+            }
+            ctx.stroke();
+        }
+        if (shape === "line") {
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(startX + width, startY + height);
+            ctx.stroke();
+        }
+
+
+    
+
+
+
+
+
+
+
+
+    }
+
+    // listen for mouse events
+    $("#canvas").mousedown(function (e) {
+        handleMouseDown(e);
+    });
+    $("#canvas").mousemove(function (e) {
+        handleMouseMove(e);
+    });
+    $("#canvas").mouseup(function (e) {
+        handleMouseUp(e);
+    });
+
+    $("#canvas").mouseout(function (e) {
+        handleMouseOut(e);
+    });
+
+    function formatLast(id){
+        array = id
+        element = document.getElementById("lastUl")
+        element.innerHTML = ""
+        array.forEach(e => {
+            // element.innerHTML += `<li>shape: ${e.shape} x1: ${e.x} y1: ${e.y} x2: ${e.x + e.width} y2: ${e.y + e.height}</li>`
+            element.innerHTML += `<li >${e.text}(${e.x},${e.y},${e.x + e.width},${e.y + e.height})</li>`
+        });
+
+    }
+</script>
+
+</html>
